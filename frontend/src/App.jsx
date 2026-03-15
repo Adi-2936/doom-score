@@ -41,6 +41,20 @@ function App() {
           <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
         </Routes>
       </div>
+      <div style={{
+        position: 'fixed',
+        bottom: '8px',
+        right: '12px',
+        fontSize: '9px',
+        color: '#333',
+        letterSpacing: '1.5px',
+        fontFamily: 'Courier New, monospace',
+        textTransform: 'uppercase',
+        zIndex: 999,
+        pointerEvents: 'none'
+      }}>
+        built by adithya singh
+      </div>
     </BrowserRouter>
   )
 }
