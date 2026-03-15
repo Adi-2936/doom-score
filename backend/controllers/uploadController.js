@@ -2,9 +2,12 @@ const { PdfReader } = require('pdfreader');
 const Post = require('../models/Post');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Ensure the API key is being read from .env
+// The SDK will automatically look for process.env.GEMINI_API_KEY
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+/**
+ * Extracts raw text from a PDF buffer
+ */
 const extractTextFromBuffer = (buffer) => {
     return new Promise((resolve, reject) => {
         const reader = new PdfReader();
@@ -17,66 +20,97 @@ const extractTextFromBuffer = (buffer) => {
     });
 };
 
+/**
+ * Sends text to Gemini and parses the response into Post objects
+ */
+const generatePostsFromPDF = async (buffer, subject, fileName) => {
+    const extractedText = await extractTextFromBuffer(buffer);
+
+    // FIX: Using the verified Gemini 3.1 model name from your terminal test
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' });
+
+    const prompt = `
+    You are an expert educator. Read the following text extracted from a PDF and generate 10 short educational posts about distinct topics from the content.
+
+    Each post must follow this exact format:
+    TITLE: <topic title>
+    BODY: <2-3 sentence explanation of the topic, simple and easy to understand>
+    ---
+
+    Text:
+    ${extractedText.slice(0, 15000)}
+  `;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    // Split by the separator and remove empty/tiny strings
+    const rawPosts = responseText.split('---').filter(p => p.trim().length > 10);
+
+    return rawPosts.map(raw => {
+        // Case-insensitive regex to catch "Title:" or "TITLE:"
+        const titleMatch = raw.match(/TITLE:\s*(.+)/i);
+        const bodyMatch = raw.match(/BODY:\s*([\s\S]+)/i);
+
+        return {
+            title: titleMatch ? titleMatch[1].trim() : 'Untitled Topic',
+            body: bodyMatch ? bodyMatch[1].trim() : 'Content could not be parsed.',
+            subject: subject,
+            source: fileName
+        };
+    });
+};
+
+/**
+ * Main Controller Function
+ */
 const uploadPDF = async (req, res) => {
     try {
-        const subject = req.body.subject;
-        const fileName = req.file ? req.file.originalname : 'unknown_file';
+        const files = req.files;
+        const subjects = req.body.subjects;
 
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
+        if (!files || files.length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        const extractedText = await extractTextFromBuffer(req.file.buffer);
+        // Ensure subjects is an array even if only one is sent
+        const subjectsArray = Array.isArray(subjects) ? subjects : [subjects];
+        let allPosts = [];
 
-        // FIX: Target the model that worked in your terminal test
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' });
+        console.log(`🚀 Processing ${files.length} file(s)...`);
 
-        const prompt = `
-            You are an expert educator. Read the following text extracted from a PDF and generate 10 short educational posts about distinct topics from the content.
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const subject = subjectsArray[i] || subjectsArray[0] || 'General';
 
-            Each post must follow this exact format:
-            TITLE: <topic title>
-            BODY: <2-3 sentence explanation of the topic, simple and easy to understand>
-            ---
+            console.log(`📄 Analyzing: ${file.originalname}`);
 
-            Text:
-            ${extractedText.slice(0, 15000)}
-        `;
+            const posts = await generatePostsFromPDF(file.buffer, subject, file.originalname);
+            allPosts = [...allPosts, ...posts];
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+            // SAFETY: Wait 1.5 seconds between files to avoid Rate Limits (429 errors)
+            if (files.length > 1 && i < files.length - 1) {
+                console.log("Waiting to avoid rate limit...");
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+        }
 
-        // Improved splitting logic to avoid empty items
-        const rawPosts = responseText.split('---').map(p => p.trim()).filter(p => p.length > 10);
-
-        const posts = rawPosts.map(raw => {
-            const titleMatch = raw.match(/TITLE:\s*(.+)/i);
-            const bodyMatch = raw.match(/BODY:\s*([\s\S]+)/i);
-
-            return {
-                title: titleMatch ? titleMatch[1].trim() : 'Untitled',
-                body: bodyMatch ? bodyMatch[1].trim() : 'No content',
-                subject: subject || 'General',
-                source: fileName
-            };
-        });
-
-        if (posts.length > 0) {
-            await Post.insertMany(posts);
+        // Bulk save to MongoDB
+        if (allPosts.length > 0) {
+            await Post.insertMany(allPosts);
         }
 
         res.status(200).json({
-            message: 'Posts generated successfully',
-            count: posts.length,
-            posts
+            message: 'Successfully generated and saved posts',
+            count: allPosts.length,
+            posts: allPosts
         });
 
     } catch (err) {
-        console.error("Gemini Error:", err);
+        console.error("Controller Error:", err);
         res.status(500).json({
-            message: 'Something went wrong',
-            error: err.message,
-            tip: "Check if your GEMINI_API_KEY is correctly set in your .env file."
+            message: 'Failed to process PDF',
+            error: err.message
         });
     }
 };
