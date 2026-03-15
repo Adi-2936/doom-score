@@ -19,7 +19,7 @@ function Login({ onLogin }) {
             localStorage.setItem('doomscore_token', response.data.token)
             localStorage.setItem('doomscore_user', JSON.stringify(response.data.user))
             onLogin()
-            navigate('/feed')
+            navigate('/welcome')
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed')
         } finally {
@@ -55,6 +55,14 @@ function Login({ onLogin }) {
                         DOOM<span className="text-glow">SCORE</span>
                     </h1>
                     <div className="divider-accent" style={{ marginTop: '12px' }} />
+                    <p style={{
+                        color: 'var(--text-secondary)',
+                        fontSize: '12px',
+                        marginTop: '10px',
+                        letterSpacing: '1px'
+                    }}>
+                        turn your pdfs into a scrollable knowledge feed
+                    </p>
                 </div>
 
                 {error && (

@@ -6,6 +6,7 @@ import Library from './pages/Library'
 import Stats from './pages/Stats'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Welcome from './pages/Welcome'
 import NavBar from './components/NavBar'
 
 function App() {
@@ -23,7 +24,7 @@ function App() {
   }
 
   function AuthRoute({ children }) {
-    return !isLoggedIn ? children : <Navigate to="/feed" />
+    return !isLoggedIn ? children : <Navigate to="/welcome" />
   }
 
   return (
@@ -33,6 +34,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<AuthRoute><Login onLogin={handleLogin} /></AuthRoute>} />
           <Route path="/register" element={<AuthRoute><Register onLogin={handleLogin} /></AuthRoute>} />
+          <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
           <Route path="/" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
           <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
           <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
