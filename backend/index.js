@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const cors = require('cors')
 const dotenv = require('dotenv')
 
-dotenv.config()
+dotenv.config({ path: '.env' })
 
 const uploadRoute = require('./routes/uploadRoute')
 const chatRoute = require('./routes/chatRoute')
