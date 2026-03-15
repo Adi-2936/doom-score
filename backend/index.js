@@ -2,9 +2,9 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const dotenv = require('dotenv')
-const uploadRoute = require('./routes/uploadRoute')
 dotenv.config()
-
+const uploadRoute = require('./routes/uploadRoute')
+console.log('GEMINI KEY:', process.env.GEMINI_API_KEY)
 const app = express()
 app.use((req, res, next) => {
     console.log(req.method, req.url)
