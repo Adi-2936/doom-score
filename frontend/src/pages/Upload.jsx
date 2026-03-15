@@ -3,64 +3,64 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 function Upload() {
-    const [file, setFile] = useState(null)
-    const [subject, setSubject] = useState('')
+    const [files, setFiles] = useState([])
     const [loading, setLoading] = useState(false)
     const [progress, setProgress] = useState(0)
     const [dragOver, setDragOver] = useState(false)
     const navigate = useNavigate()
 
-    const handleFileChange = (e) => {
-        setFile(e.target.files[0])
+    const handleFiles = (incoming) => {
+        const pdfs = Array.from(incoming).filter(f => f.type === 'application/pdf')
+        const newFiles = pdfs.map(file => ({ file, subject: '' }))
+        setFiles(prev => [...prev, ...newFiles])
     }
 
     const handleDrop = (e) => {
         e.preventDefault()
         setDragOver(false)
-        const droppedFile = e.dataTransfer.files[0]
-        if (droppedFile && droppedFile.type === 'application/pdf') {
-            setFile(droppedFile)
-        }
+        handleFiles(e.dataTransfer.files)
     }
 
-    const handleDragOver = (e) => {
-        e.preventDefault()
-        setDragOver(true)
+    const handleFileInput = (e) => {
+        handleFiles(e.target.files)
     }
 
-    const handleDragLeave = () => {
-        setDragOver(false)
+    const updateSubject = (index, value) => {
+        setFiles(prev => prev.map((item, i) =>
+            i === index ? { ...item, subject: value } : item
+        ))
     }
+
+    const removeFile = (index) => {
+        setFiles(prev => prev.filter((_, i) => i !== index))
+    }
+
+    const canUpload = files.length > 0 && files.every(f => f.subject.trim() !== '')
 
     const handleUpload = async () => {
-        if (!file || !subject) return
+        if (!canUpload) return
 
         setLoading(true)
         setProgress(0)
 
         const interval = setInterval(() => {
             setProgress(prev => {
-                if (prev >= 90) {
-                    clearInterval(interval)
-                    return 90
-                }
-                return prev + 10
+                if (prev >= 90) { clearInterval(interval); return 90 }
+                return prev + 5
             })
-        }, 500)
+        }, 800)
 
         try {
             const formData = new FormData()
-            formData.append('pdf', file)
-            formData.append('subject', subject)
+            files.forEach(item => formData.append('pdfs', item.file))
+            files.forEach(item => formData.append('subjects', item.subject))
 
-            const response = await axios.post('http://localhost:5000/api/upload', formData)
+            await axios.post('http://localhost:5000/api/upload', formData)
 
             clearInterval(interval)
             setProgress(100)
 
-            setTimeout(() => {
-                navigate('/feed', { state: { posts: response.data.posts } })
-            }, 500)
+            setTimeout(() => navigate('/feed'), 600)
 
         } catch (err) {
             console.log(err)
@@ -84,84 +84,102 @@ function Upload() {
                 </p>
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-                <p className="section-title" style={{ marginBottom: '8px' }}>subject</p>
+            <div
+                onDrop={handleDrop}
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onClick={() => document.getElementById('fileInput').click()}
+                style={{
+                    width: '100%',
+                    minHeight: '140px',
+                    border: `2px dashed ${dragOver ? 'var(--accent-light)' : 'var(--border)'}`,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    background: dragOver ? 'rgba(124, 58, 237, 0.05)' : 'var(--bg-card)',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '24px'
+                }}
+            >
                 <input
-                    type="text"
-                    placeholder="e.g. web development, DSA, DBMS..."
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    style={{
-                        width: '100%',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '4px',
-                        padding: '12px 16px',
-                        fontSize: '14px',
-                        color: 'var(--text-primary)',
-                        letterSpacing: '1px',
-                        transition: 'border-color 0.2s ease'
-                    }}
-                    onFocus={e => e.target.style.borderColor = 'var(--accent-primary)'}
-                    onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                    id="fileInput"
+                    type="file"
+                    accept=".pdf"
+                    multiple
+                    onChange={handleFileInput}
+                    style={{ display: 'none' }}
                 />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', letterSpacing: '2px' }}>
+                    DROP PDFS HERE
+                </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '8px', letterSpacing: '1px' }}>
+                    or click to browse — multiple files supported
+                </p>
             </div>
 
-            <div style={{ marginBottom: '32px' }}>
-                <p className="section-title" style={{ marginBottom: '8px' }}>upload pdf</p>
-                <div
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onClick={() => document.getElementById('fileInput').click()}
-                    style={{
-                        width: '100%',
-                        minHeight: '160px',
-                        border: `2px dashed ${dragOver ? 'var(--accent-light)' : file ? 'var(--accent-primary)' : 'var(--border)'}`,
-                        borderRadius: '8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        background: dragOver ? 'rgba(124, 58, 237, 0.05)' : 'var(--bg-card)',
-                        transition: 'all 0.2s ease',
-                        boxShadow: file ? '0 0 20px var(--accent-glow)' : 'none'
-                    }}
-                >
-                    <input
-                        id="fileInput"
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                    />
-                    {file ? (
-                        <>
-                            <p style={{ color: 'var(--accent-light)', fontSize: '13px', letterSpacing: '1px' }}>
-                                ▓ {file.name}
-                            </p>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '6px' }}>
-                                {(file.size / 1024).toFixed(1)} KB
-                            </p>
-                        </>
-                    ) : (
-                        <>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', letterSpacing: '2px' }}>
-                                DROP PDF HERE
-                            </p>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '8px', letterSpacing: '1px' }}>
-                                or click to browse
-                            </p>
-                        </>
-                    )}
+            {files.length > 0 && (
+                <div style={{ marginBottom: '32px' }}>
+                    <p className="section-title" style={{ marginBottom: '12px' }}>
+                        {files.length} pdf{files.length > 1 ? 's' : ''} queued
+                    </p>
+                    {files.map((item, index) => (
+                        <div key={index} style={{
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '14px 16px',
+                            marginBottom: '10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <p style={{ color: 'var(--accent-light)', fontSize: '12px', letterSpacing: '0.5px' }}>
+                                    ▓ {item.file.name}
+                                </p>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); removeFile(index) }}
+                                    style={{
+                                        background: 'transparent',
+                                        color: 'var(--text-muted)',
+                                        fontSize: '16px',
+                                        padding: '0 4px'
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="subject (e.g. DSA, Web Dev, DBMS...)"
+                                value={item.subject}
+                                onChange={e => updateSubject(index, e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                                style={{
+                                    width: '100%',
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '4px',
+                                    padding: '10px 14px',
+                                    fontSize: '13px',
+                                    color: 'var(--text-primary)',
+                                    letterSpacing: '0.5px'
+                                }}
+                                onFocus={e => e.target.style.borderColor = 'var(--accent-primary)'}
+                                onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                            />
+                        </div>
+                    ))}
                 </div>
-            </div>
+            )}
 
             {loading && (
                 <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <p className="section-title">analyzing pdf</p>
+                        <p className="section-title">analyzing pdfs</p>
                         <p className="section-title">{progress}%</p>
                     </div>
                     <div style={{
@@ -189,7 +207,7 @@ function Upload() {
                         {progress < 30 ? 'extracting text...' :
                             progress < 60 ? 'feeding to AI...' :
                                 progress < 90 ? 'generating posts...' :
-                                    'almost done...'}
+                                    'saving to database...'}
                     </p>
                 </div>
             )}
@@ -197,14 +215,14 @@ function Upload() {
             <button
                 className="btn-primary"
                 onClick={handleUpload}
-                disabled={!file || !subject || loading}
+                disabled={!canUpload || loading}
                 style={{
                     width: '100%',
-                    opacity: (!file || !subject || loading) ? 0.4 : 1,
-                    cursor: (!file || !subject || loading) ? 'not-allowed' : 'pointer'
+                    opacity: (!canUpload || loading) ? 0.4 : 1,
+                    cursor: (!canUpload || loading) ? 'not-allowed' : 'pointer'
                 }}
             >
-                {loading ? 'processing...' : '▓ initialize doom score'}
+                {loading ? 'processing...' : `▓ initialize doom score`}
             </button>
 
         </div>

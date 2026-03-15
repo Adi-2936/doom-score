@@ -1,4 +1,8 @@
+import { useState, useEffect } from 'react'
+import { toggleBookmark, isBookmarked, markAsRead } from '../utils/storage'
+
 function PostCard({ post, index, total, onAskBot }) {
+    const [bookmarked, setBookmarked] = useState(false)
     const bgLetter = post.title.charAt(0).toUpperCase()
 
     const gradients = [
@@ -11,6 +15,17 @@ function PostCard({ post, index, total, onAskBot }) {
 
     const gradient = gradients[index % gradients.length]
 
+    useEffect(() => {
+        setBookmarked(isBookmarked(post._id))
+        markAsRead(post._id)
+    }, [post._id])
+
+    const handleBookmark = (e) => {
+        e.stopPropagation()
+        const result = toggleBookmark(post._id)
+        setBookmarked(result)
+    }
+
     return (
         <div style={{
             height: '100vh',
@@ -18,8 +33,8 @@ function PostCard({ post, index, total, onAskBot }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#0a0a0a',
-            padding: '24px 16px'
+            padding: '24px 16px',
+            paddingBottom: '88px'
         }}>
 
             <div style={{
@@ -101,18 +116,40 @@ function PostCard({ post, index, total, onAskBot }) {
                     }}>
                         {post.subject}
                     </span>
-                    <span style={{
-                        color: '#444',
-                        fontSize: '11px',
-                        letterSpacing: '2px',
-                        fontFamily: 'Courier New, monospace'
-                    }}>
-                        {String(index + 1).padStart(2, '0')}/{String(total).padStart(2, '0')}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <button
+                            onClick={handleBookmark}
+                            style={{
+                                background: 'transparent',
+                                fontSize: '16px',
+                                color: bookmarked ? '#A855F7' : '#444',
+                                textShadow: bookmarked ? '0 0 10px rgba(168, 85, 247, 0.8)' : 'none',
+                                transition: 'all 0.2s ease',
+                                padding: '0'
+                            }}
+                        >
+                            {bookmarked ? '★' : '☆'}
+                        </button>
+                        <span style={{
+                            color: '#444',
+                            fontSize: '11px',
+                            letterSpacing: '2px',
+                            fontFamily: 'Courier New, monospace'
+                        }}>
+                            {String(index + 1).padStart(2, '0')}/{String(total).padStart(2, '0')}
+                        </span>
+                    </div>
                 </div>
 
-                <div style={{ position: 'relative', zIndex: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px 0' }}>
-
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    padding: '16px 0'
+                }}>
                     <div style={{
                         width: '36px',
                         height: '2px',
@@ -120,7 +157,6 @@ function PostCard({ post, index, total, onAskBot }) {
                         boxShadow: '0 0 8px #7C3AED88',
                         marginBottom: '16px'
                     }} />
-
                     <h2 style={{
                         fontSize: '26px',
                         fontWeight: '700',
@@ -132,7 +168,6 @@ function PostCard({ post, index, total, onAskBot }) {
                     }}>
                         {post.title}
                     </h2>
-
                     <p style={{
                         fontSize: '14px',
                         color: '#999999',
@@ -142,7 +177,6 @@ function PostCard({ post, index, total, onAskBot }) {
                     }}>
                         {post.body}
                     </p>
-
                 </div>
 
                 <div style={{ position: 'relative', zIndex: 2 }}>
@@ -155,7 +189,6 @@ function PostCard({ post, index, total, onAskBot }) {
                     }}>
                         ↳ {post.source}
                     </p>
-
                     <button
                         onClick={onAskBot}
                         style={{
@@ -185,7 +218,7 @@ function PostCard({ post, index, total, onAskBot }) {
             {index < total - 1 && (
                 <div style={{
                     position: 'absolute',
-                    bottom: '16px',
+                    bottom: '72px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     color: '#333333',
@@ -197,7 +230,6 @@ function PostCard({ post, index, total, onAskBot }) {
                     scroll ↓
                 </div>
             )}
-
         </div>
     )
 }
