@@ -2,12 +2,8 @@ const { PdfReader } = require('pdfreader');
 const Post = require('../models/Post');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// The SDK will automatically look for process.env.GEMINI_API_KEY
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-/**
- * Extracts raw text from a PDF buffer
- */
 const extractTextFromBuffer = (buffer) => {
     return new Promise((resolve, reject) => {
         const reader = new PdfReader();
@@ -20,13 +16,9 @@ const extractTextFromBuffer = (buffer) => {
     });
 };
 
-/**
- * Sends text to Gemini and parses the response into Post objects
- */
-const generatePostsFromPDF = async (buffer, subject, fileName) => {
+const generatePostsFromPDF = async (buffer, subject, fileName, userId) => {
     const extractedText = await extractTextFromBuffer(buffer);
 
-    // FIX: Using the verified Gemini 3.1 model name from your terminal test
     const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' });
 
     const prompt = `
@@ -44,11 +36,9 @@ const generatePostsFromPDF = async (buffer, subject, fileName) => {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
-    // Split by the separator and remove empty/tiny strings
     const rawPosts = responseText.split('---').filter(p => p.trim().length > 10);
 
     return rawPosts.map(raw => {
-        // Case-insensitive regex to catch "Title:" or "TITLE:"
         const titleMatch = raw.match(/TITLE:\s*(.+)/i);
         const bodyMatch = raw.match(/BODY:\s*([\s\S]+)/i);
 
@@ -56,24 +46,22 @@ const generatePostsFromPDF = async (buffer, subject, fileName) => {
             title: titleMatch ? titleMatch[1].trim() : 'Untitled Topic',
             body: bodyMatch ? bodyMatch[1].trim() : 'Content could not be parsed.',
             subject: subject,
-            source: fileName
+            source: fileName,
+            userId: userId
         };
     });
 };
 
-/**
- * Main Controller Function
- */
 const uploadPDF = async (req, res) => {
     try {
         const files = req.files;
         const subjects = req.body.subjects;
+        const userId = req.userId
 
         if (!files || files.length === 0) {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        // Ensure subjects is an array even if only one is sent
         const subjectsArray = Array.isArray(subjects) ? subjects : [subjects];
         let allPosts = [];
 
@@ -85,17 +73,15 @@ const uploadPDF = async (req, res) => {
 
             console.log(`📄 Analyzing: ${file.originalname}`);
 
-            const posts = await generatePostsFromPDF(file.buffer, subject, file.originalname);
+            const posts = await generatePostsFromPDF(file.buffer, subject, file.originalname, userId);
             allPosts = [...allPosts, ...posts];
 
-            // SAFETY: Wait 1.5 seconds between files to avoid Rate Limits (429 errors)
             if (files.length > 1 && i < files.length - 1) {
                 console.log("Waiting to avoid rate limit...");
                 await new Promise(resolve => setTimeout(resolve, 1500));
             }
         }
 
-        // Bulk save to MongoDB
         if (allPosts.length > 0) {
             await Post.insertMany(allPosts);
         }

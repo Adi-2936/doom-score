@@ -8,11 +8,14 @@ dotenv.config()
 const uploadRoute = require('./routes/uploadRoute')
 const chatRoute = require('./routes/chatRoute')
 const postsRoute = require('./routes/postsRoute')
+const authRoute = require('./routes/authRoute')
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+
+app.use('/api/auth', authRoute)
 app.use('/api', uploadRoute)
 app.use('/api', chatRoute)
 app.use('/api', postsRoute)

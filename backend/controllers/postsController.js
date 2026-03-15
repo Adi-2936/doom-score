@@ -2,7 +2,7 @@ const Post = require('../models/Post')
 
 const getPosts = async (req, res) => {
     try {
-        const posts = await Post.find().sort({ createdAt: -1 })
+        const posts = await Post.find({ userId: req.userId }).sort({ createdAt: -1 })
 
         const grouped = {}
         posts.forEach(post => {
@@ -34,7 +34,7 @@ const getPosts = async (req, res) => {
 
 const clearPosts = async (req, res) => {
     try {
-        await Post.deleteMany({})
+        await Post.deleteMany({ userId: req.userId })
         res.status(200).json({ message: 'All posts cleared' })
     } catch (err) {
         res.status(500).json({ message: 'Something went wrong', error: err.message })
