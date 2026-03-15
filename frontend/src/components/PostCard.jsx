@@ -17,7 +17,24 @@ function PostCard({ post, index, total, onAskBot }) {
 
     useEffect(() => {
         setBookmarked(isBookmarked(post._id))
-        markAsRead(post._id)
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            markAsRead(post._id)
+                        }, 2000)
+                    }
+                })
+            },
+            { threshold: 0.8 }
+        )
+
+        const el = document.getElementById(`post-${post._id}`)
+        if (el) observer.observe(el)
+
+        return () => observer.disconnect()
     }, [post._id])
 
     const handleBookmark = (e) => {
@@ -230,6 +247,7 @@ function PostCard({ post, index, total, onAskBot }) {
                     scroll ↓
                 </div>
             )}
+
         </div>
     )
 }

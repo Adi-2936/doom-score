@@ -10,6 +10,7 @@ function Feed() {
     const [posts, setPosts] = useState([])
     const [loading, setLoading] = useState(true)
     const [activePost, setActivePost] = useState(null)
+
     const startAtId = location.state?.startAtId || null
     const filterSource = location.state?.filterSource || null
     const filterSubject = location.state?.filterSubject || null
@@ -20,10 +21,17 @@ function Feed() {
                 const response = await axios.get('http://localhost:5000/api/posts')
                 let fetched = response.data.posts
 
-                if (filterSource) {
-                    fetched = fetched.filter(p => p.source === filterSource)
-                } else if (filterSubject) {
-                    fetched = fetched.filter(p => p.subject === filterSubject)
+                const currentFilterSource = location.state?.filterSource || null
+                const currentFilterSubject = location.state?.filterSubject || null
+
+                if (currentFilterSource) {
+                    fetched = fetched.filter(p => p.source === currentFilterSource)
+                } else if (currentFilterSubject) {
+                    fetched = fetched.filter(p => p.subject === currentFilterSubject)
+                }
+
+                if (fetched.length === 0 && (currentFilterSource || currentFilterSubject)) {
+                    fetched = response.data.posts
                 }
 
                 setPosts(fetched)
@@ -34,17 +42,14 @@ function Feed() {
             }
         }
         fetchPosts()
-    }, [])
+    }, [location.state])
 
     useEffect(() => {
         if (!loading && startAtId && posts.length > 0) {
-            const index = posts.findIndex(p => p._id === startAtId)
-            if (index !== -1) {
-                setTimeout(() => {
-                    const el = document.getElementById(`post-${startAtId}`)
-                    if (el) el.scrollIntoView({ behavior: 'instant' })
-                }, 100)
-            }
+            setTimeout(() => {
+                const el = document.getElementById(`post-${startAtId}`)
+                if (el) el.scrollIntoView({ behavior: 'instant' })
+            }, 100)
         }
     }, [loading, startAtId, posts])
 
@@ -116,7 +121,7 @@ function Feed() {
                         ▓ {filterSource ? filterSource.slice(0, 25) + '...' : filterSubject}
                     </span>
                     <button
-                        onClick={() => navigate('/feed')}
+                        onClick={() => navigate('/feed', { state: null })}
                         style={{
                             background: 'transparent',
                             color: 'var(--text-muted)',
