@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 
 function Upload() {
     const [files, setFiles] = useState([])
@@ -39,7 +39,6 @@ function Upload() {
 
     const handleUpload = async () => {
         if (!canUpload) return
-
         setLoading(true)
         setProgress(0)
 
@@ -55,11 +54,10 @@ function Upload() {
             files.forEach(item => formData.append('pdfs', item.file))
             files.forEach(item => formData.append('subjects', item.subject))
 
-            await axios.post('http://localhost:5000/api/upload', formData)
+            await api.post('/upload', formData)
 
             clearInterval(interval)
             setProgress(100)
-
             setTimeout(() => navigate('/feed'), 600)
 
         } catch (err) {
@@ -142,12 +140,7 @@ function Upload() {
                                 </p>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); removeFile(index) }}
-                                    style={{
-                                        background: 'transparent',
-                                        color: 'var(--text-muted)',
-                                        fontSize: '16px',
-                                        padding: '0 4px'
-                                    }}
+                                    style={{ background: 'transparent', color: 'var(--text-muted)', fontSize: '16px', padding: '0 4px' }}
                                 >
                                     ✕
                                 </button>
@@ -222,7 +215,7 @@ function Upload() {
                     cursor: (!canUpload || loading) ? 'not-allowed' : 'pointer'
                 }}
             >
-                {loading ? 'processing...' : `▓ initialize doom score`}
+                {loading ? 'processing...' : '▓ initialize doom score'}
             </button>
 
         </div>

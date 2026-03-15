@@ -1,20 +1,42 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useState } from 'react'
 import Upload from './pages/Upload'
 import Feed from './pages/Feed'
 import Library from './pages/Library'
 import Stats from './pages/Stats'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import NavBar from './components/NavBar'
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('doomscore_token'))
+
+  const handleLogin = () => setIsLoggedIn(true)
+  const handleLogout = () => {
+    localStorage.removeItem('doomscore_token')
+    localStorage.removeItem('doomscore_user')
+    setIsLoggedIn(false)
+  }
+
+  function ProtectedRoute({ children }) {
+    return isLoggedIn ? children : <Navigate to="/login" />
+  }
+
+  function AuthRoute({ children }) {
+    return !isLoggedIn ? children : <Navigate to="/feed" />
+  }
+
   return (
     <BrowserRouter>
-      <NavBar />
-      <div style={{ marginLeft: '90px' }}>
+      {isLoggedIn && <NavBar onLogout={handleLogout} />}
+      <div className={isLoggedIn ? 'main-content' : ''}>
         <Routes>
-          <Route path="/" element={<Upload />} />
-          <Route path="/feed" element={<Feed />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/stats" element={<Stats />} />
+          <Route path="/login" element={<AuthRoute><Login onLogin={handleLogin} /></AuthRoute>} />
+          <Route path="/register" element={<AuthRoute><Register onLogin={handleLogin} /></AuthRoute>} />
+          <Route path="/" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+          <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+          <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+          <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
         </Routes>
       </div>
     </BrowserRouter>

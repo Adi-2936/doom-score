@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 import PostCard from '../components/PostCard'
 import ChatBot from '../components/ChatBot'
 
@@ -18,7 +18,7 @@ function Feed() {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/posts')
+                const response = await api.get('/posts')
                 let fetched = response.data.posts
 
                 const currentFilterSource = location.state?.filterSource || null

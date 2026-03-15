@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 import { isBookmarked, toggleBookmark, isRead } from '../utils/storage'
 
 function Library() {
@@ -17,7 +17,7 @@ function Library() {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/posts')
+                const response = await api.get('/posts')
                 setPosts(response.data.posts)
             } catch (err) {
                 console.log(err)
@@ -70,36 +70,18 @@ function Library() {
 
     if (loading) {
         return (
-            <div style={{
-                height: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }}>
-                <p className="text-glow" style={{ fontSize: '14px', letterSpacing: '3px' }}>
-                    loading library...
-                </p>
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p className="text-glow" style={{ fontSize: '14px', letterSpacing: '3px' }}>loading library...</p>
             </div>
         )
     }
 
     if (posts.length === 0) {
         return (
-            <div style={{
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px'
-            }}>
+            <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                 <p className="section-title">library is empty</p>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    upload some pdfs first
-                </p>
-                <button className="btn-ghost" onClick={() => navigate('/')}>
-                    go to upload
-                </button>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>upload some pdfs first</p>
+                <button className="btn-ghost" onClick={() => navigate('/')}>go to upload</button>
             </div>
         )
     }
@@ -144,10 +126,7 @@ function Library() {
                     {subjects.map(subject => (
                         <button
                             key={subject}
-                            onClick={() => {
-                                setActiveSubject(subject)
-                                setActiveSource('all')
-                            }}
+                            onClick={() => { setActiveSubject(subject); setActiveSource('all') }}
                             style={{
                                 background: activeSubject === subject ? 'var(--accent-primary)' : 'rgba(22,22,22,0.8)',
                                 color: activeSubject === subject ? '#fff' : 'var(--text-secondary)',
@@ -221,7 +200,6 @@ function Library() {
                 ) : (
                     Object.keys(grouped).map(source => (
                         <div key={source} style={{ marginBottom: '16px' }}>
-
                             <div
                                 style={{
                                     width: '100%',
@@ -251,19 +229,10 @@ function Library() {
                                     }}
                                 >
                                     <div>
-                                        <p style={{
-                                            fontSize: '11px',
-                                            color: 'var(--accent-light)',
-                                            letterSpacing: '1px',
-                                            marginBottom: '2px'
-                                        }}>
+                                        <p style={{ fontSize: '11px', color: 'var(--accent-light)', letterSpacing: '1px', marginBottom: '2px' }}>
                                             ▓ {shortSource(source)}
                                         </p>
-                                        <p style={{
-                                            fontSize: '10px',
-                                            color: 'var(--text-muted)',
-                                            letterSpacing: '1px'
-                                        }}>
+                                        <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '1px' }}>
                                             {grouped[source].length} posts · {grouped[source].filter(p => isRead(p._id)).length} read
                                         </p>
                                     </div>
@@ -274,9 +243,7 @@ function Library() {
                                         transition: 'transform 0.2s ease',
                                         transform: expandedSources[source] ? 'rotate(180deg)' : 'rotate(0deg)',
                                         marginLeft: '12px'
-                                    }}>
-                                        ▼
-                                    </span>
+                                    }}>▼</span>
                                 </button>
 
                                 <button
@@ -302,12 +269,7 @@ function Library() {
                             </div>
 
                             {expandedSources[source] && (
-                                <div style={{
-                                    border: '1px solid var(--border)',
-                                    borderTop: 'none',
-                                    borderRadius: '0 0 6px 6px',
-                                    overflow: 'hidden'
-                                }}>
+                                <div style={{ border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 6px 6px', overflow: 'hidden' }}>
                                     {grouped[source].map((post, i) => (
                                         <div
                                             key={post._id}
@@ -328,19 +290,9 @@ function Library() {
                                             onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,16,16,0.8)'}
                                         >
                                             <div style={{ flex: 1 }}>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                    marginBottom: '4px'
-                                                }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                                                     {isRead(post._id) && (
-                                                        <span style={{
-                                                            fontSize: '9px',
-                                                            color: 'var(--accent-light)',
-                                                            letterSpacing: '1px',
-                                                            flexShrink: 0
-                                                        }}>✓</span>
+                                                        <span style={{ fontSize: '9px', color: 'var(--accent-light)', letterSpacing: '1px', flexShrink: 0 }}>✓</span>
                                                     )}
                                                     <p style={{
                                                         fontSize: '13px',
@@ -382,7 +334,6 @@ function Library() {
                                     ))}
                                 </div>
                             )}
-
                         </div>
                     ))
                 )}
